@@ -241,10 +241,3 @@ int WebServer::createThreadPool(int threadNum){
 int WebServer::m_epollfd = -1;
 bool WebServer::isStop = false;
 int WebServer::eventHandlerPipe[2] = {-1, -1};
-
-
-
-
-
-
-
