@@ -261,7 +261,7 @@ void HandleRecv::process(){
 
                 }else{    // POST 是其他类型的数据
                     // 其他 POST 类型的数据时，直接返回重定向报文，获取文件列表
-                    responseStatus[m_clientFd].bodyFileName = "\redirect";
+                    responseStatus[m_clientFd].bodyFileName = "/redirect";
                     modifyWaitFd(m_epollFd, m_clientFd, true, true, true);
                     requestStatus[m_clientFd].status = HADNLE_COMPLATE;
                     std::cout << outHead("error") << "客户端 " << m_clientFd << " 的 POST 请求中接收到不能处理的数据，添加 Response 写事件，返回重定向到文件列表的报文" << std::endl;

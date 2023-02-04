@@ -101,7 +101,7 @@ private:
 // 处理向客户端发送数据
 class HandleSend : public EventBase{
 public:
-    HandleSend(int clientFd, int epollFd) : EventBase(){ };
+    HandleSend(int clientFd, int epollFd) : m_clientFd(clientFd), m_epollFd(epollFd){ };
     virtual ~HandleSend(){ };
 
 public:
