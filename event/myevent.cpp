@@ -538,7 +538,7 @@ void HandleSend::process(){
     if(responseStatus[m_clientFd].status == HADNLE_COMPLATE){
         // 完成发送数据后删除该响应
         responseStatus.erase(m_clientFd);
-        modifyWaitFd(m_epollFd, m_clientFd, true, false, false);                            // 不再监听写事件
+        modifyWaitFd(m_epollFd, m_clientFd, true, true, false);                            // 不再监听写事件
         std::cout << outHead("info") << "客户端 " << m_clientFd << " 的响应报文发送成功" << std::endl;
     }else if(responseStatus[m_clientFd].status == HANDLE_ERROR){
         // 如果发送失败，删除该响应，删除监听该文件描述符，关闭连接
