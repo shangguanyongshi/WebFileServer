@@ -94,7 +94,7 @@ int deleteWaitFd(int epollFd, int deleteFd){
 
 int setNonBlocking(int fd){
     int oldFlag = fcntl(fd, F_GETFL);
-    int ret = fcntl(fd, F_GETFL, oldFlag | O_NONBLOCK);
+    int ret = fcntl(fd, F_SETFL, oldFlag | O_NONBLOCK);
     if(ret != 0){
         return -1;
     }
