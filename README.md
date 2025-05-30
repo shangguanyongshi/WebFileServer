@@ -70,3 +70,7 @@ HTML 的文件列表页面如下所示：
 - 《TCP/IP 网络编程》：[https://book.douban.com/subject/25911735/](https://book.douban.com/subject/25911735/)
 - 《Linux高性能服务器编程》：[https://book.douban.com/subject/24722611/](https://book.douban.com/subject/24722611/)
 - TinyWebServer：[https://github.com/qinguoyi/TinyWebServer](https://github.com/qinguoyi/TinyWebServer)
+
+# 个人贡献
+
+- 解决了下载失败的问题，原因是他会把非英文字符通过UTF-8编码进行URL转义，比如`代理.txt`文件会被编码为`%E4%BB%A3%E7%90%86.txt`，导致下载失败。而作者那里，由于是英文，因此可以下载成功。

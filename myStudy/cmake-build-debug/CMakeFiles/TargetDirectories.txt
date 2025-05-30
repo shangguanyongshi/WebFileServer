@@ -1,0 +1,3 @@
+/home/wu/code/网络编程/WebFileServer/myStudy/cmake-build-debug/CMakeFiles/myStudy.dir
+/home/wu/code/网络编程/WebFileServer/myStudy/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/wu/code/网络编程/WebFileServer/myStudy/cmake-build-debug/CMakeFiles/rebuild_cache.dir

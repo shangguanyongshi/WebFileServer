@@ -14,10 +14,11 @@ std::string outHead(const std::string logType){
     gettimeofday(&time_usec, NULL);
 
     char strTime[30] = { 0 };
-    sprintf(strTime, "%02d:%02d:%02d.%05d %d-%02d-%02d",
-            time_tm->tm_hour, time_tm->tm_min, time_tm->tm_sec, time_usec.tv_usec, 
+    //16:31:15.695681 2025-05-10
+    sprintf(strTime, "%02d:%02d:%02d.%05ld %d-%02d-%02d",
+            time_tm->tm_hour, time_tm->tm_min, time_tm->tm_sec, time_usec.tv_usec,
             time_tm->tm_year + 1900, time_tm->tm_mon + 1, time_tm->tm_mday);
-    
+
     std::string outStr;
     // 添加时间部分
     outStr += strTime;
@@ -29,29 +30,37 @@ std::string outHead(const std::string logType){
     }else{
         outStr += " [info]: ";
     }
-    
+    //得到16:31:15.695681 2025-05-10 [info]:
     return outStr;
 }
 
 
-// 向 epollfd 添加文件描述符，并指定监听事件。edgeTrigger：边缘触发，isOneshot：EPOLLONESHOT
+// 向 epollfd 添加文件描述符newFd，并指定监听事件。edgeTrigger：边缘触发，isOneshot：EPOLLONESHOT
 int addWaitFd(int epollFd, int newFd, bool edgeTrigger, bool isOneshot){
+    // 创建一个epoll事件对象
     epoll_event event;
+    // 设置事件对象中的文件描述符
     event.data.fd = newFd;
 
+    // 初始化事件类型为EPOLLIN
     event.events = EPOLLIN;
+    // 如果设置了edgeTrigger标志，则将事件类型设置为EPOLLET
     if(edgeTrigger){
         event.events |= EPOLLET;
     }
+    // 如果设置了isOneshot标志，则将事件类型设置为EPOLLONESHOT
     if(isOneshot){
         event.events |= EPOLLONESHOT;
     }
 
+    // 将新文件描述符添加到epoll实例中
     int ret = epoll_ctl(epollFd, EPOLL_CTL_ADD, newFd, &event);
+    // 如果添加失败，则输出错误信息并返回-1
     if(ret != 0){
         std::cout << outHead("error") << "添加文件描述符失败" << std::endl;
         return -1;
     }
+    // 添加成功，返回0
     return 0;
 }
 
@@ -93,10 +102,15 @@ int deleteWaitFd(int epollFd, int deleteFd){
 // 设置文件描述符为非阻塞
 
 int setNonBlocking(int fd){
+    // 获取文件描述符的当前标志
     int oldFlag = fcntl(fd, F_GETFL);
+    // 设置文件描述符为非阻塞模式
     int ret = fcntl(fd, F_SETFL, oldFlag | O_NONBLOCK);
+    // 检查设置是否成功
     if(ret != 0){
+        // 设置失败，返回-1
         return -1;
     }
+    // 设置成功，返回0
     return 0;
 }

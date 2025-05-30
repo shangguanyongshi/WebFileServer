@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="icon" href="data:;base64,=">
+        <title>文件列表</title>
+        <meta http-equiv="content-type" content="text/html;charset=utf-8">
+        <script type="text/javascript">
+            function confirmDelete() {
+                return confirm('确认删除该文件吗？');
+            }
+
+            function uploadWin(){
+                var vDiv = document.getElementById('div1');
+                vDiv.style.display = 'block';
+                vDiv.style.zIndex = 10;
+                vDiv.style.position = "absolute";
+
+                var vDiv2 = document.getElementById('div2');
+                vDiv2.style.display = 'block';
+                vDiv2.style.zIndex = 11;
+                vDiv2.style.position = "fixed";
+                vDiv2.style.top = "20%";
+                vDiv2.style.left = "50%";
+                vDiv2.style.marginLeft = "-111px";
+                vDiv2.style.marginTop = "-20px";
+            }
+            
+        </script>
+        <style>
+            .col1{
+                text-align: left;
+                word-break:keep-all;
+                word-wrap:break-word;
+                white-space: nowrap;
+                
+                overflow: hidden;
+                text-overflow:ellipsis;
+            }
+            .col2{
+                width: 50px;
+            }
+            .col3{
+                width: 50px;
+            }
+        </style>
+    </head>
+
+    <body style="text-align: center; margin: 0 auto;">
+        <div id="div1" style="width: 100%; height: 100%; display: none;text-align: center; background-color: #8b8b8b; opacity: 0.5;" ></div>
+        <div id="div2" style="width: 200px; height: 30px; text-align: center; display: none; padding: 30px 30px; font-size: large; opacity: 1; background-color:#ffffff; border-radius: 20px; border: 1px solid #5e5c5c4b;">正在上传文件...</div>
+        <div style="width:700px;  margin:0 auto; padding: 30px 0; border:1px dotted;">
+            <div style="width:600px; border:1px dotted;text-align: center; margin:auto; padding:20px 0px;" >
+                <div style="width:300px; text-align: left; margin: auto;">选择文件上传：</div>
+                <br/>
+                <form id="uploadfile" action="upload"  method="post" enctype="multipart/form-data" style="text-align: center;">
+                        <input type="file" id="upload" name="upload" style = "border:1px solid;" />
+                        <input type="submit" onclick="uploadWin()" value="上传" />
+                </form>
+            </div>
+            
+            </br>
+            <div style="width:600px; text-align: left; margin:auto;">文件列表：</div>
+            <table border="1px" style="width:600px;text-align: center; margin: auto;table-layout:fixed;">
+                <thead>
+                    <td style="text-align: center;">文件名</td> <td class="col2"></td> <td class="col3"></td>
+                </thead>
+<!--filelist_label-->
+            </table>
+        </div>
+    </body>
+</html>
