@@ -30,7 +30,7 @@ std::string urlDecode(const std::string& encoded) {
     return decoded;
 }
 
-
+// 用于接受客户端连接的事件
 void AcceptConn::process(){
     // 接受连接
     clientAddrLen = sizeof(clientAddr);
@@ -48,7 +48,7 @@ void AcceptConn::process(){
     std::cout << outHead("info") << "接受新连接 " << accFd << " 成功" << std::endl;
 }
 
-
+// 处理客户端发送的请求
 void HandleRecv::process(){
     std::cout << outHead("info") << "开始处理客户端 " << m_clientFd << " 的一个 HandleRecv 事件" << std::endl;
     // 获取 Request 对象，保存到m_clientFd索引的requestStatus中（没有时会自动创建一个新的）
@@ -91,13 +91,14 @@ void HandleRecv::process(){
         std::string::size_type endIndex = 0;
         
         // 如果是初始状态，获取请求行
+        // POST /upload HTTP/1.1\r\n,setRequestLine 会解析出 requestMethod="POST"，requestResourse="/upload"，httpVersion="HTTP/1.1"。
         if(requestStatus[m_clientFd].status == HANDLE_INIT){
 
             endIndex = requestStatus[m_clientFd].recvMsg.find("\r\n");       // 查找请求行的结束边界
 
             if(endIndex != std::string::npos){
                 // 保存请求行  
-                requestStatus[m_clientFd].setRequestLine( requestStatus[m_clientFd].recvMsg.substr(0, endIndex + 2) ); // std::cout << requestStatus[m_clientFd].recvMsg.substr(0, endIndex + 2);
+                requestStatus[m_clientFd].setRequestLine(requestStatus[m_clientFd].recvMsg.substr(0, endIndex + 2) ); // std::cout << requestStatus[m_clientFd].recvMsg.substr(0, endIndex + 2);
                 requestStatus[m_clientFd].recvMsg.erase(0, endIndex + 2);    // 删除收到的数据中的请求行
                 requestStatus[m_clientFd].status = HANDLE_HEAD;              // 将状态设置为处理消息首部
                 std::cout << outHead("info") << "处理客户端 " << m_clientFd << " 的请求行完成" << std::endl;
@@ -107,6 +108,7 @@ void HandleRecv::process(){
         }
         
         // 如果是处理首部的状态，逐行解析首部字段，直至遇到空行
+        //请求头可能包含 Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryxxx，addHeaderOpt 会解析出 Content-Type 和 boundary（用于后续文件边界判断）。
         if(requestStatus[m_clientFd].status == HANDLE_HEAD){
             
             std::string curLine;       // 用于暂存获取的一行数据
@@ -315,7 +317,7 @@ void HandleRecv::process(){
     
 }
 
-
+// 处理向客户端发送数据
 void HandleSend::process(){
     std::cout << outHead("info") << "开始处理客户端 " << m_clientFd << " 的一个 HandleSend 事件" << std::endl;
     // 如果该套接字没有需要处理的 Response 消息，直接退出
@@ -641,6 +643,14 @@ void HandleSend::getFileListPage(std::string &fileListHtml){
     }
     
 }
+/**
+ * @brief 获取指定目录下的所有文件名并存储在结果向量中
+ *
+ * 使用 dirent 库获取指定目录下的所有文件名，并将其存储在传入的结果向量中。
+ *
+ * @param dirName 指定目录的路径
+ * @param resVec 用于存储获取到的文件名的结果向量
+ */
 void HandleSend::getFileVec(const std::string dirName, std::vector<std::string> &resVec){
     // 使用 dirent 获取文件目录下的所有文件
     DIR *dir;   // 目录指针
@@ -665,6 +675,18 @@ void HandleSend::getFileVec(const std::string dirName, std::vector<std::string> 
 // contentType          : 指定消息体的类型
 // redirectLoction = "" : 如果是重定向报文，可以指定重定向的地址。空字符串表示不添加该首部。
 // contentRange = ""    : 如果是下载文件的响应报文，指定当前发送的文件范围。空字符串表示不添加该首部。
+/**
+ * @brief 生成HTTP响应头字符串
+ *
+ * 根据输入的内容长度、内容类型、重定向位置和内容范围生成HTTP响应头字符串。
+ *
+ * @param contentLength 内容长度字符串
+ * @param contentType 内容类型字符串
+ * @param redirectLoction 重定向位置字符串
+ * @param contentRange 内容范围字符串
+ *
+ * @return 返回生成的HTTP响应头字符串
+ */
 std::string HandleSend::getMessageHeader(const std::string contentLength, const std::string contentType, const std::string redirectLoction, const std::string contentRange){
     std::string headerOpt;
 

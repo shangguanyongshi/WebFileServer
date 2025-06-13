@@ -59,6 +59,14 @@ public:
         lineStream >> requestResourse;
         lineStream >> httpVersion;
     }
+    /**
+     * @brief 向消息头添加选项
+     *
+     * 将给定的消息头字符串解析并存储到全局的消息头map中。如果消息头包含特殊字段（如Content-Length、Content-Type），
+     * 则进行特殊处理。
+     *
+     * @param headLine 要添加的消息头字符串
+     */
     void addHeaderOpt(const std::string &headLine){
         static std::istringstream lineStream;
         lineStream.str(headLine);
