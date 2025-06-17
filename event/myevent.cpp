@@ -1,12 +1,12 @@
+#include <string>
+#include <sstream>
+#include <iomanip>
 #include "myevent.h"
 
 // 类外初始化静态成员
 std::unordered_map<int, Request> EventBase::requestStatus;
 std::unordered_map<int, Response> EventBase::responseStatus;
 
-#include <string>
-#include <sstream>
-#include <iomanip>
 
 std::string urlDecode(const std::string& encoded) {
     std::string decoded;
