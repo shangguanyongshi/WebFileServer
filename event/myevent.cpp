@@ -285,6 +285,124 @@ void HandleRecv::process(){
                         break;
                     }
 
+                    //新增文件夹
+                    if(requestStatus[m_clientFd].msgHeader["X-Content-Type"] =="directory"){
+                        switch (requestStatus[m_clientFd].dirMsgStatus){
+                            case DIR_BEGIN_FLAG: {
+                                std::cout << outHead("info") << "客户端 " << m_clientFd << " 的 POST 请求用于上传文件夹，寻找文件夹开始边界..." << std::endl;
+                                // 查找文件夹开始标志（如 "--<boundary>-dir-start"）
+                                endIndex = requestStatus[m_clientFd].recvMsg.find("\r\n");
+                                if(endIndex != std::string::npos){
+                                    std::string flagStr = requestStatus[m_clientFd].recvMsg.substr(0, endIndex);
+                                    if(flagStr == "--" + requestStatus[m_clientFd].msgHeader["boundary"] + "-dir-start"){
+                                        requestStatus[m_clientFd].dirMsgStatus = DIR_METADATA;
+                                        requestStatus[m_clientFd].recvMsg.erase(0, endIndex + 2);
+                                        std::cout << "找到文件夹开始标志，解析元数据..." << std::endl;
+                                    }
+                                }
+                                break;
+                            }  
+                            case DIR_METADATA: {
+                                // 解析文件夹元数据（子文件数量、名称列表）
+                                // 示例格式："X-SubFiles: 3; files=sub1.txt,subdir/file2.txt,file3.jpg"
+                                std::string metaLine;
+                                while((endIndex = requestStatus[m_clientFd].recvMsg.find("\r\n")) != std::string::npos){
+                                    metaLine = requestStatus[m_clientFd].recvMsg.substr(0, endIndex + 2);
+                                    requestStatus[m_clientFd].recvMsg.erase(0, endIndex + 2);
+                                    
+                                    if(metaLine == "\r\n"){  // 元数据结束（空行）
+                                        requestStatus[m_clientFd].dirMsgStatus = DIR_FILES;
+                                        std::cout << "文件夹元数据解析完成，开始接收子文件..." << std::endl;
+                                        break;
+                                    }
+                                    
+                                    // 提取子文件列表（示例：解析 "X-SubFiles: 3; files=sub1.txt,subdir/file2.txt"）
+                                    if(metaLine.find("X-SubFiles") != std::string::npos){
+                                        size_t eqPos = metaLine.find('=');
+                                        std::string filesStr = metaLine.substr(eqPos + 1);
+                                        // 按逗号分割子文件路径
+                                        std::istringstream iss(filesStr);
+                                        std::string subFile;
+                                        while(getline(iss, subFile, ',')){
+                                            requestStatus[m_clientFd].subFilePaths.push_back(subFile);
+                                        }
+                                    }
+                                }
+                                break;
+                            }
+                            case DIR_FILES: {
+                                // 递归接收子文件（每个子文件按 FILE_TYPE 处理）
+                                // 示例：依次处理 sub1.txt、subdir/file2.txt 等
+                                for(const auto& subFile : requestStatus[m_clientFd].subFilePaths){
+                                    // 创建子文件目录（如 "subdir"）
+                                    size_t lastSlash = subFile.find_last_of('/');
+                                    if(lastSlash != std::string::npos){
+                                        std::string dirPath = "filedir/" + subFile.substr(0, lastSlash);
+                                        mkdir(dirPath.c_str(), 0755);  // 创建目录（需处理错误）
+                                    }
+                                    // 复用现有文件上传逻辑保存子文件内容
+                                    std::ofstream ofs("filedir/" + subFile, std::ios::binary | std::ios::app);
+                                    // ... 写入文件内容（同现有 FILE_CONTENT 逻辑） ...
+                                    if(!ofs){
+                                        std::cout << outHead("error") << "客户端 " << m_clientFd << " 的 POST 请求体所需要保存的文件打开失败，正在重新打开文件..." << std::endl;
+                                        break;
+                                    }
+
+                                    while(1){
+                                        int saveLen = requestStatus[m_clientFd].recvMsg.size();        // 该变量用来保存 根据\r的位置决定向文件中写入多少字符，初始为所有字符长度
+                                        if(saveLen == 0){                                              // 长度为空时退出循环，等待接收到数据时再处理
+                                            break;
+                                        }
+                                        // 在剩余的字符中搜索标志 \r
+                                        endIndex = requestStatus[m_clientFd].recvMsg.find('\r');
+                                                    
+                                        if(endIndex != std::string::npos){   // 如果有\r，后面有可能是文件结束标识
+                                            // 首先判断 \r 后的数据是否满足结束标识的长度，是否大于等于 sizeof(\r\n + "--" + boundary + "--" + \r\n)
+                                            int boundarySecLen = requestStatus[m_clientFd].msgHeader["boundary"].size() + 8;
+                                            if(requestStatus[m_clientFd].recvMsg.size() - endIndex >= boundarySecLen){
+                                                // 判断后面这部分数据是否为结束边界"\r\n"
+                                                if(requestStatus[m_clientFd].recvMsg.substr(endIndex, boundarySecLen) ==
+                                                                "\r\n--" + requestStatus[m_clientFd].msgHeader["boundary"] + "--\r\n"){
+                                                    if(endIndex == 0){                  // 表示边界前的数据都已经写入文件，设置文件接收完成，进入下一个状态
+                                                        std::cout << outHead("info") << "客户端 " << m_clientFd << " 的 POST 请求体中的文件数据接收并保存完成" << std::endl;
+                                                        requestStatus[m_clientFd].fileMsgStatus = FILE_COMPLATE;
+                                                        break;
+                                                    }
+
+                                                    // 如果后面不是结束标识，先将 \r 之前的所有数据写入文件，在循环的下一轮会进到上一个if，结束整个处理
+                                                    saveLen = endIndex;
+                                                    
+                                                }else{  
+                                                    // 如果不是边界，在 \r 后再次搜索 \r，如果搜索到了，写入的数据截至到第二个 \r，否则将所有数据写入
+                                                    endIndex = requestStatus[m_clientFd].recvMsg.find('\r', endIndex + 1);
+                                                    if(endIndex != std::string::npos){
+                                                        saveLen = endIndex;
+                                                    }
+                                                }
+
+                                            }else{  
+                                                // 如果长度还不够，将 /r 前面的数据写入文件，并等待接收后面的数据
+
+                                                // 如果 /r 之前的数据已经写入文件，退出循环，等待接收更多数据后再进入该循环
+                                                if(endIndex == 0){   
+                                                    break;
+                                                }
+
+                                                // 否则将 endIndex 前的数据写入文件
+                                                saveLen = endIndex;
+                                            }
+                                        }
+                                        // 如果没有退出表示当前仍是数据部分，将 saveLen 字节的数据存入文件，并将这些数据从 recvMsg 数据中删除
+                                        ofs.write(requestStatus[m_clientFd].recvMsg.c_str(), saveLen);
+                                        requestStatus[m_clientFd].recvMsg.erase(0, saveLen);
+                                    }
+                                    ofs.close();
+                                }
+                                requestStatus[m_clientFd].dirMsgStatus = DIR_COMPLATE;
+                                break;
+                            }                          
+                        }
+                    }
 
                 }else{    // POST 是其他类型的数据
                     // 其他 POST 类型的数据时，直接返回重定向报文，获取文件列表
