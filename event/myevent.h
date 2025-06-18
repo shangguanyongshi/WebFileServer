@@ -8,6 +8,8 @@
  *  7. requestStatus 保存所有套接字当前对请求消息接收并处理了多少，根据请求消息的状态在 process 函数中对请求消息继续处理
  *  8. responseStatus 保存所有套接字当前对响应消息构建并发送了多少，根据请求消息的状态在 process 函数中对请求消息继续处理
  *  9. 如果某个套接字没有任何事件产生，requestStatus 和 responseStatus 中保存的事件会被清空
+ *  🔄 核心思想：事件驱动 + 非阻塞 IO + 状态保留
+ *  服务器用 epoll 监听套接字事件，每当某个连接产生事件，就构建对应的 EventBase 派生类对象，并将其交给线程池执行 process()。
  */
 #ifndef MYEVENT_H
 #define MYEVENT_H
@@ -40,6 +42,7 @@ protected:
 
     // 保存文件描述符对应的发送数据的状态，一次proces中非阻塞的写数据可能无法将数据全部传过去，所以保存当前数据发送的状态，可以继续传递数据
     static std::unordered_map<int, Response> responseStatus;
+    //所以即使一次 read() 或 send() 没完成，也能“断点续传”。
 
 public:
     // 不同类型事件中重写该函数，执行不同的处理方法

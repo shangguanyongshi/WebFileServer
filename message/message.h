@@ -41,7 +41,7 @@ enum FILEMSGBODYSTATUS{
 // 定义 Request 和 Response 公共的部分，即消息首部、消息体（可以获取消息首部的某个字段、修改与获取消息体相关的数据）
 class Message{
 public:
-    Message() : status(HANDLE_INIT){
+    Message() : status(HANDLE_INIT){  // 默认构造函数，将状态设置为初始值(正在接收/发送头部数据（请求行、请求头）)
 
     }
 
@@ -49,12 +49,13 @@ public:
     // 请求消息和响应消息都需要使用的一些成员
     MSGSTATUS status;                                        // 记录消息的接收状态，表示整个请求报文收到了多少/发送了多少
 
-    std::unordered_map<std::string, std::string> msgHeader;  // 保存消息首部
+    std::unordered_map<std::string, std::string> msgHeader;  // 保存消息首部，存储的是键值对（key-value pairs）首部字段 map（如 Content-Type, Content-Length）
 
 private:
     
 };
-
+//请求消息
+//继承自 Message，代表从浏览器接收到的 HTTP 请求：
 // 继承 Message，对请求行的修改和获取，保存收到的首部选项
 class Request : public Message{
 public:
@@ -62,18 +63,34 @@ public:
 
     }
     // 设置与返回请求行相关字段
+    /**
+     * @brief 设置请求行
+     *
+     * 从传入的字符串中提取请求方法、请求资源和HTTP版本，并保存到类中相应的成员变量中。
+     * 比如 GET /index.html HTTP/1.1
+     * @param requestLine 请求行字符串
+     */
     void setRequestLine(const std::string &requestLine){
         std::istringstream lineStream(requestLine);
         // 获取请求方法
-        lineStream >> requestMethod; 
+        lineStream >> requestMethod;   // GET/POST等
         // 获取请求资源
-        lineStream >> rquestResourse;
+        // lineStream >> rquestResourse;
+        lineStream >> requestResourse;  // 请求的资源路径
+
         // 获取http版本
-        lineStream >> httpVersion;
+        lineStream >> httpVersion;  // 协议版本
         
     }
 
     // 对于Request 报文，根据传入的一行首部字符串，向首部保存选项
+    /**
+     * @brief 添加头部选项
+     *
+     * 该函数将传入的头部选项解析并存入 msgHeader 中。
+     * 比如Content-Type: multipart/form-data; boundary=xxx
+     * @param headLine 要解析的头部选项字符串
+     */
     void addHeaderOpt(const std::string &headLine){
         static std::istringstream lineStream;
         lineStream.str(headLine);    // 以 istringstream 的方式处理头部选项
@@ -119,7 +136,7 @@ public:
 
 
     std::string requestMethod;     // 请求消息的请求方法
-    std::string rquestResourse;    // 请求的资源
+    std::string requestResourse;    // 请求的资源
     std::string httpVersion;       // 请求的HTTP版本
 
     long long contentLength = 0;                 // 记录消息体的长度
@@ -130,7 +147,7 @@ public:
 private:
 
 };
-
+// 响应消息
 // 继承 Message，对于状态行修改和获取，设置要发送的首部选项
 class Response : public Message{
 public:
@@ -141,8 +158,8 @@ public:
 public:
     // 保存状态行相关数据
     std::string responseHttpVersion = "HTTP/1.1";
-    std::string responseStatusCode;
-    std::string responseStatusDes;
+    std::string responseStatusCode;  // 如 200、404
+    std::string responseStatusDes;   // 如 OK、Not Found
 
     // 以下成员主要用于在发送响应消息时暂存相关的数据
 
